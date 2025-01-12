@@ -1,16 +1,17 @@
 import java.util.Objects;
+import java.util.Random;
 import java.util.Scanner;
 
 public class Main {
 
     private static final String EMPTY = " ";
     private static final String[][] board = new String[3][3];
-    private static final String ERROR = "Invalid option,Please try again...";
-    private static final Scanner input = new Scanner(System.in);
+    private static final String ERROR = "Invalid input,Please try again...";
+    private static Scanner input = new Scanner(System.in);
+    private static final Random random = new Random();
 
     public static void main(String[] args) {
-        int opt = menu();
-        optionGame(opt);
+        optionGame();
     }
 
     private static int menu() {
@@ -25,7 +26,6 @@ public class Main {
             opt = input.nextInt();
             opt = validateOption(opt);
         } catch (Exception e) {
-            System.out.println(ERROR);
             opt = validateOption(999);
         }
         return opt;
@@ -33,14 +33,18 @@ public class Main {
 
     private static int validateOption(int opt) {
         while (opt > 3 || opt <= 0) {
-            System.out.println(ERROR);
-            System.out.print("Enter your option: ");
-            opt = input.nextInt();
+            try {
+                input = new Scanner(System.in);
+                System.out.println(ERROR);
+                System.out.print("Enter your option: ");
+                opt = input.nextInt();
+            }catch (Exception _){}
         }
         return opt;
     }
 
     private static void display() {
+        System.out.println("=============================================================");
         for (int col = 0; col < 3; col++) {
             System.out.print("   " + col);
         }
@@ -64,37 +68,70 @@ public class Main {
         }
     }
 
-    private static void playUserVsCpt() {
-    }
-    private static void playUserVsUser() {}
-    private static void play() {
-        String currentPlayer = playerOption();
-        int numOfMove = 0;
+    private static void playGame(Boolean isPlayWithCpt) {
+        boolean isHaveWon = false,isInvalidInput;
+        int numOfMove = 0,row = 0,col = 0;
         setDefaultBoard();
+        String player = playerOption();
+        final String currentPlayer = player;
 
         while (!isEndGame()) {
             display();
-            System.out.print("Player " + currentPlayer + ", enter your move (row and column) : ");
-            int row = input.nextInt();
-            int col = input.nextInt();
+            if(isPlayWithCpt && numOfMove%2 != 0 && !Objects.equals(currentPlayer, player)){
+                // PLAYER IS CPT
+                do{
+                    row = random.nextInt(3);
+                    col = random.nextInt(3);
+                }while (!Objects.equals(board[row][col], EMPTY));
+            }else{
+                // PLAYER IS USER
+                do{
+                    try {
+                        input = new Scanner(System.in);
+                        System.out.print("Player " + player + ", enter your move (row and column) : ");
+                        row = input.nextInt();
+                        col = input.nextInt();
+                        if((row > 3 || row < 0) || (col > 3 || col < 0)) throw new Exception("error");
+                        isInvalidInput = false;
+                    }catch (Exception e){
+                        isInvalidInput = true;
+                        System.out.println(ERROR);
+                    }
+                }while (isInvalidInput);
 
-            currentPlayer = playerMove(row, col, currentPlayer);
+            }
+
+            // PLAYER MOVE
+            player = playerMove(row, col, player);
             numOfMove++;
 
-            if (numOfMove >= 5 && isHaveWinner(setCurrentPlayer(currentPlayer))) {
+            // IF PLAYER WIN
+            if (numOfMove >= 5 && isHaveWinner(setPlayer(player))) {
                 display();
-                System.out.println("Player " + setCurrentPlayer(currentPlayer) + " wins!");
-                return;
+                System.out.println("Player " + setPlayer(player) + " wins!");
+                isHaveWon = true;
+                break;
             }
         }
-        display();
-        System.out.println("It's a draw!");
+
+        // IF PLAYER DRAW
+        if(!isHaveWon) {
+            display();
+            System.out.println("It's a draw!");
+        }
     }
 
     private static String playerOption() {
-        System.out.print("Player 1, please select your symbol (X or O): ");
-        String currentPlayer = input.next();
-        System.out.println("Player 1 has chosen: " + currentPlayer + ". Player 2 will be: " + setCurrentPlayer(currentPlayer) + ".");
+        String currentPlayer;
+        boolean isInvalidInput = false;
+        do{
+            if(isInvalidInput) System.out.println("Please select only symbol (X or O) !!!");
+            System.out.print("Player 1, please select your symbol (X or O): ");
+            currentPlayer = input.next();
+            isInvalidInput = true;
+        }while (!currentPlayer.equals("X") && !currentPlayer.equals("O"));
+
+        System.out.println("Player 1 has chosen: " + currentPlayer + ". Player 2 will be: " + setPlayer(currentPlayer) + ".");
         System.out.println("The game begins now. Good luck!");
         return currentPlayer;
     }
@@ -108,34 +145,35 @@ public class Main {
         return true;
     }
 
-    private static String playerMove(int row, int col, String currentPlayer) {
+    private static String playerMove(int row, int col, String player) {
         if (!Objects.equals(board[row][col], EMPTY)) {
             System.out.println("Invalid move! Try again.");
-            return currentPlayer;
+            return player;
         }
-        board[row][col] = currentPlayer;
-        return setCurrentPlayer(currentPlayer);
+        board[row][col] = player;
+        return setPlayer(player);
     }
 
-    private static void optionGame(int opt) {
+    private static void optionGame() {
+        int opt;
         do {
+            opt = menu();
             setDefaultBoard();
             switch (opt) {
                 case 1:
-                    playUserVsUser();
+                    playGame(false);
                     break;
                 case 2:
-                    playUserVsCpt();
+                    playGame(true);
                     break;
                 case 3:
+                    System.out.println("Good Bye!!!");
                     return;
-                default:
-                    opt = validateOption(999);
             }
-        } while (opt != 3);
+        } while (true);
     }
 
-    private static String setCurrentPlayer(String currentPlayer) {
+    private static String setPlayer(String currentPlayer) {
         return currentPlayer.equals("X") ? "O" : "X";
     }
 
